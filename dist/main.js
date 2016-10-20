@@ -89,7 +89,7 @@ module.exports.loop = function () {
     var upgrader = require('role.Upgrader');
     var assembler = require('role.Assembler');
     var mechanic = require('role.Mechanic');
-    var conqueror = require('role.Mechanic');
+    var conqueror = require('role.Conqueror');
     var _ = require('lodash');
     for(var room_id in Game.rooms) {
         var curRoom = Game.rooms[room_id];
