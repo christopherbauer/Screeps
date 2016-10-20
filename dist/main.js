@@ -161,13 +161,13 @@ module.exports.loop = function () {
         ]
     };
     for(var configId in options.population) {
-        var min = options.population[configId];
-        if(min.spawner != null){
+        var pop = options.population[configId];
+        if(pop.spawner != null){
             for(var room_id in Game.rooms) {
                 var aRoom = Game.rooms[room_id];
-                var expectedNumber = min.minimum;
-                if(min.isEnabled(aRoom) && expectedNumber > _.filter(aRoom.find(FIND_MY_CREEPS), function(creep) { return creep.name.toUpperCase().startsWith(min.role.toUpperCase()); }).length) {
-                    min.spawner[min.role].spawn(aRoom);
+                var expectedNumber = pop.minimum;
+                if(pop.isEnabled(aRoom) && expectedNumber > _.filter(aRoom.find(FIND_MY_CREEPS), function(creep) { return creep.name.toUpperCase().startsWith(pop.role.toUpperCase()); }).length) {
+                    pop.spawner[pop.role].spawn(aRoom);
                 }
             }
         }
