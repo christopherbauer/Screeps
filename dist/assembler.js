@@ -28,7 +28,7 @@ module.exports.assembler = {
                 mod.base.mineTask(creep, "assemble");
             } else if(creep.memory.task === "assemble") {
                 mod.base.assembleTask(creep);
-            } else if (creep.memory.task === "fillSpawn"){
+            } else if (creep.memory.task === "storeEnergy"){
                 mod.base.storeEnergyTask(creep);
             } else {
                 creep.memory.task = "mine";
