@@ -197,15 +197,15 @@ module.exports.loop = function () {
     for(var room_id in Game.rooms) {
         var aRoom = Game.rooms[room_id];
         for(var configId in options.population) {
-            var min = options.population[configId];
-            // if(min.spawner == null) {
+            var demographic = options.population[configId];
+            // if(demographic.spawner == null) {
             //     throw 
             // }
-            var expectedNumber = min.minimum;
-            if(expectedNumber > _.filter(aRoom.find(FIND_MY_CREEPS), function(creep) { return creep.name.toUpperCase().startsWith(min.role.toUpperCase()); }).length) {
-                if(min.isEnabled(aRoom)) {
-                    var result = min.spawner[min.role].spawn(aRoom);
-                    if(result == ERR_NOT_ENOUGH_ENERGY || !min.canSkip) {
+            var expectedNumber = demographic.minimum;
+            if(expectedNumber > _.filter(aRoom.find(FIND_MY_CREEPS), function(creep) { return creep.name.toUpperCase().startsWith(demographic.role.toUpperCase()); }).length) {
+                if(demographic.isEnabled(aRoom)) {
+                    var result = demographic.spawner[demographic.role].spawn(aRoom);
+                    if(result == ERR_NOT_ENOUGH_ENERGY || !demographic.canSkip) {
                         break;
                     }
                 } else {
