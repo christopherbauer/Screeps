@@ -43,7 +43,7 @@ module.exports.base = {
         } else if (result == ERR_NOT_ENOUGH_RESOURCES) {
             creep.memory.task = "mine";
         } else if (result == ERR_INVALID_TARGET) {
-            creep.memory.task = "fillSpawn";
+            creep.memory.task = "storeEnergy";
         }
     },
     dieingTask: function(creep) {
