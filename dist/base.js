@@ -99,22 +99,27 @@ module.exports.base = {
 				curTarget = closest(creep, extensions[extension], curTarget)
 			}
 			for(var tower in towers) {
-				curTarget = closest(creep, extensions[extension], curTarget)
+				curTarget = closest(creep, towers[tower], curTarget)
 			}
-				
 			var result = creep.transfer(curTarget, RESOURCE_ENERGY);
 			
 			if(result == ERR_NOT_IN_RANGE) {
 				creep.moveTo(curTarget);
-			} else if(result === OK || result === ERR_NOT_ENOUGH_RESOURCES) {
+			} else if(result === OK) {
 				if(creep.carry.energy == 0) {
 					creep.memory.task = "mine";
 				}
 			} else {
-			    creep.memory.task = "mine";
+				creep.memory.task = "mine";
 			}
 		} else {
-			creep.memory.task = "assemble";
+            var roomController = creep.room.controller;
+            var result = creep.upgradeController(roomController);
+            if(result == ERR_NOT_IN_RANGE){
+                creep.moveTo(roomController);
+            } else if (result == ERR_NOT_ENOUGH_RESOURCES) {
+                creep.memory.task = "mine";
+            }
 		}
 	}
 };
