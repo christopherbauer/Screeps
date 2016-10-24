@@ -27,14 +27,45 @@ Creep.prototype.canHarvest = function(source) {
     return this.harvest(source) === ERR_NOT_IN_RANGE;
 }
 Creep.prototype.nearestFloorEnergy = function() {
-    var energy = this.pos.findInRange(FIND_DROPPED_ENERGY,1);
+    var energy = this.pos.findInRange(FIND_DROPPED_ENERGY,2);
     if(energy.length == 0){
         return;
     }
     return energy[0];
 }
-Creep.prototype.nearestUnusedSource = function() {
-    var sources = this.room.find(FIND_SOURCES);
+Creep.prototype.nearestSource = function(filter) {
+    var sources;
+    if(filter) {
+        sources = this.room.find(FIND_SOURCES, filter); 
+    } else {
+        sources = this.room.find(FIND_SOURCES);
+    }
+    var nearestUnusedSource;
+    for(var source in sources){
+        if(this.pos.isNearTo(sources[source])) { //if you're already there, keep harvesting
+            return sources[source].id;
+        }
+        
+        if(nearestUnusedSource == null){
+            nearestUnusedSource = sources[source].id;   
+        } else if(nearestUnusedSource != null) {
+            var curDistanceTo = this.pos.distanceTo(sources[source].pos); //distance to new source
+            var oldDistanceTo = this.pos.distanceTo(Game.getObjectById(nearestUnusedSource).pos);
+            
+            if(curDistanceTo < oldDistanceTo) {
+                nearestUnusedSource = sources[source].id;
+            }
+        }
+    }
+    return nearestUnusedSource;
+}
+Creep.prototype.nearestUnusedSource = function(filter) {
+    var sources;
+    if(filter) {
+        sources = this.room.find(FIND_SOURCES, filter); 
+    } else {
+        sources = this.room.find(FIND_SOURCES);
+    }
     var nearestUnusedSource;
     for(var source in sources){
         if(this.pos.isNearTo(sources[source])) { //if you're already there, keep harvesting
@@ -52,7 +83,6 @@ Creep.prototype.nearestUnusedSource = function() {
             
             if(curDistanceTo < oldDistanceTo) {
                 nearestUnusedSource = sources[source].id;
-                
             }
         }
     }
@@ -73,6 +103,7 @@ Room.prototype.isFree = function(pos) {
     }
     return true;
 }
+
 Source.prototype.isFree = function() {
     var pos = this.pos;
     return this.room.isFree(new RoomPosition(pos.x-1, pos.y-1, this.room.name)) || //nw
@@ -90,6 +121,7 @@ module.exports.loop = function () {
     var assembler = require('role.Assembler');
     var mechanic = require('role.Mechanic');
     var conqueror = require('role.Conqueror');
+    var staticMiner = require('role.StaticMiner');
     var _ = require('lodash');
     for(var room_id in Game.rooms) {
         var curRoom = Game.rooms[room_id];
@@ -100,7 +132,7 @@ module.exports.loop = function () {
                 { controllerLevel: 1, extensions: 0 },
                 { controllerLevel: 2, extensions: 2 },
                 { controllerLevel: 3, extensions: 5 },
-                { controllerLevel: 4, extensions: 8 }
+                { controllerLevel: 4, extensions: 9 }
             ];
             var extensionMin;
             for(var option in options){
@@ -154,20 +186,31 @@ module.exports.loop = function () {
     }
     var options = {
         population: [
-            { role: "assembler", minimum: 3, spawner: assembler, isEnabled: function (room) { return room.find(FIND_MY_CONSTRUCTION_SITES).length > 0; } },
-            { role: "upgrader", minimum: 8, spawner: upgrader, isEnabled: function() { return true; } },
-            { role: "harvester", minimum: 6, spawner: harvester, isEnabled: function() { return true; } },
-            { role: "mechanic", minimum: 1, spawner: mechanic, isEnabled: function(room) { return room.find(FIND_STRUCTURES, { filter: function(structure) { return structure.percentHealth() < .8; } }).length > 0; } }
+            { role: "assembler", priority: 100, minimum: 2, spawner: assembler, isEnabled: function (room) { return room.find(FIND_MY_CONSTRUCTION_SITES).length > 0; } },
+            { role: "mechanic", priority: 99, minimum: 2, spawner: mechanic, isEnabled: function(room) { return room.find(FIND_STRUCTURES, { filter: function(structure) { return structure.percentHealth() < .8; } }).length > 0; } },
+            { role: "upgrader", priority: 98, minimum: 9, spawner: upgrader, isEnabled: function() { return true; } },
+            { role: "staticminer", priority: 95, minimum: 2, spawner: staticMiner, isEnabled: function(room) { return room.find(FIND_SOURCES, { filter: function(source) { return source.pos.findInRange(FIND_MY_CREEPS, 1, { filter: function(creep) { return creep.name.startsWith("staticminer"); } }).length === 0; } }).length > 0; }, canSkip: false },
+            { role: "harvester", priority: 1, minimum: 4, spawner: harvester, isEnabled: function() { return true; }, canSkip: false }
         ]
     };
-    for(var configId in options.population) {
-        var pop = options.population[configId];
-        if(pop.spawner != null){
-            for(var room_id in Game.rooms) {
-                var aRoom = Game.rooms[room_id];
-                var expectedNumber = pop.minimum;
-                if(pop.isEnabled(aRoom) && expectedNumber > _.filter(aRoom.find(FIND_MY_CREEPS), function(creep) { return creep.name.toUpperCase().startsWith(pop.role.toUpperCase()); }).length) {
-                    pop.spawner[pop.role].spawn(aRoom);
+    options.population = options.population.sort(function(a,b) { return a.priority - b.priority; });
+    for(var room_id in Game.rooms) {
+        var aRoom = Game.rooms[room_id];
+        for(var configId in options.population) {
+            var demographic = options.population[configId];
+            // if(demographic.spawner == null) {
+            //     throw 
+            // }
+            var expectedNumber = demographic.minimum;
+            var numberInRole = _.filter(aRoom.find(FIND_MY_CREEPS), function(creep) { return creep.name.toUpperCase().startsWith(demographic.role.toUpperCase()); }).length;
+            if(numberInRole < expectedNumber) {
+                if(demographic.isEnabled(aRoom)) {
+                    var result = demographic.spawner[demographic.role].spawn(aRoom);
+                    if(result == ERR_NOT_ENOUGH_ENERGY || !demographic.canSkip) {
+                        break;
+                    }
+                } else {
+                    continue;
                 }
             }
         }
@@ -175,6 +218,7 @@ module.exports.loop = function () {
     for(var creep in Game.creeps) {
         var creep = Game.creeps[creep];
         var creepName = creep.name.toLowerCase();
+        // harvester.harvester.run(creep);
         if(creepName.startsWith("harvester")) {
             harvester.harvester.run(creep);
         } else if(creepName.startsWith("upgrader")){
@@ -185,6 +229,8 @@ module.exports.loop = function () {
             mechanic.mechanic.run(creep);
         } else if(creepName.startsWith("conqueror")) {
             conqueror.conqueror.run(creep);
+        } else if(creepName.startsWith("staticminer")) {
+            staticMiner.staticminer.run(creep);
         }
     }
 }
