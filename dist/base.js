@@ -21,7 +21,7 @@ module.exports.base = {
         var targetBody;
         var version = "1.0";
         bodyConfig = bodyConfig
-            .filter(function(body) { return (body.maxControllerLevel && body.maxControllerLevel >= localRoom.maxControllerLevel) || !body.maxControllerLevel; })
+            .filter(function(body) { return (body.maxControllerLevel && body.maxControllerLevel >= localRoom.controller.level) || !body.maxControllerLevel; })
             .sort(function(a,b) { return b.minEnergy - a.minEnergy; }); //use sort by descending body configs
         for (var body in bodyConfig)
         {
@@ -70,42 +70,51 @@ module.exports.base = {
             creep.memory.task = followingTask;
         }
     },
+    
     storeEnergyTask: function(creep) {
-        if(creep.memory.task === "fillSpawn") {
-            var curRoom = creep.room;
-            var spawns = curRoom.find(FIND_MY_SPAWNS);
-            var curSpawn = spawns[0];
-                
-            if(curSpawn.energy === curSpawn.energyCapacity) {
-                creep.memory.task = "fillExtension";
-            } else {
-                var result = creep.transfer(curSpawn, RESOURCE_ENERGY);
-                if(result == ERR_NOT_IN_RANGE) {
-                    creep.moveTo(curSpawn);
-                } else if(result == ERR_FULL) {
-                    creep.memory.task = "fillExtension";
-                } else if(result === OK) {
-                    if(creep.energy === 0) {
-                        creep.memory.task = "mine";
-                    } else {
-                        creep.memory.task = "fillExtension";
-                    }
-                }
-            }
-        }
-        if(creep.memory.task === "fillExtension"){
-            var extensions = creep.room.find(FIND_MY_STRUCTURES, { filter: function(structure) { return structure.structureType === STRUCTURE_EXTENSION && structure.energy < structure.energyCapacity; } });
-            if(extensions.length > 0) {
-                var result = creep.transfer(extensions[0], RESOURCE_ENERGY);
-                
-                if(result === ERR_NOT_IN_RANGE) {
-                    creep.moveTo(extensions[0]);
-                } else if(result === OK || result === ERR_NOT_ENOUGH_RESOURCES) {
-                    creep.memory.task = "mine";
-                }
-            } else {
-                creep.memory.task = "assemble";
-            }
-        }
-    }
+		var curRoom = creep.room;
+		var spawns = curRoom.find(FIND_MY_SPAWNS, { filter: function(spawn) { return spawn.energy < spawn.energyCapacity } });
+		var extensions = curRoom.find(FIND_MY_STRUCTURES, { filter: function(structure) { return structure.structureType === STRUCTURE_EXTENSION && structure.energy < structure.energyCapacity; } });
+		var towers = curRoom.find(FIND_MY_STRUCTURES, { filter: function(structure) { return structure.structureType === STRUCTURE_TOWER && structure.energy < structure.energyCapacity; } });
+		
+		if(spawns.length > 0 || extensions.length > 0 || towers.length > 0)
+		{
+			function closest(creep, a, b) {
+			    if(a == null) {
+			        return b;
+			    } else if (b == null) {
+			        return a;
+			    }
+				if(creep.pos.distanceTo(a.pos) < creep.pos.distanceTo(b.pos)) {
+					return a;
+				}
+				return b;
+			}
+			
+			var curTarget;
+			for(var spawn in spawns) {
+				curTarget = closest(creep, spawns[spawn], curTarget);
+			}
+			for(var extension in extensions) {
+				curTarget = closest(creep, extensions[extension], curTarget)
+			}
+			for(var tower in towers) {
+				curTarget = closest(creep, extensions[extension], curTarget)
+			}
+				
+			var result = creep.transfer(curTarget, RESOURCE_ENERGY);
+			
+			if(result == ERR_NOT_IN_RANGE) {
+				creep.moveTo(curTarget);
+			} else if(result === OK || result === ERR_NOT_ENOUGH_RESOURCES) {
+				if(creep.carry.energy == 0) {
+					creep.memory.task = "mine";
+				}
+			} else {
+			    creep.memory.task = "mine";
+			}
+		} else {
+			creep.memory.task = "assemble";
+		}
+	}
 };
