@@ -206,7 +206,7 @@ module.exports.loop = function () {
             if(currentNumber < expectedNumber) {
                 if(demographic.isEnabled(aRoom)) {
                     var result = demographic.spawner[demographic.role].spawn(aRoom);
-                    if(result == ERR_NOT_ENOUGH_ENERGY && !demographic.canSkip) {
+                    if(result == ERR_NOT_ENOUGH_ENERGY || !demographic.canSkip) {
                         break;
                     }
                 } else {
