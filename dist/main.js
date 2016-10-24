@@ -214,7 +214,20 @@ module.exports.loop = function () {
                 }
             }
         }
+        var towers = aRoom.find(FIND_MY_STRUCTURES, { filter: function(structure) { return structure.structureType === STRUCTURE_TOWER && structure.energy < structure.energyCapacity; } });
+        for(var tower in towers) {
+            var curTower = towers[tower];
+            var hostiles = aRoom.find(FIND_HOSTILE_CREEPS);
+            for (var hostile in hostiles) {
+                curTower.attack(hostiles[hostile]);
+            }
+            var injureds = aRoom.find(FIND_MY_CREEPS, { filter: function (creep) { return creep.hits < creep.hitsMax; } });
+            for (var injured in injureds) {
+                curTower.heal(injureds[injured]);
+            }
+        }
     }
+    
     for(var creep in Game.creeps) {
         var creep = Game.creeps[creep];
         var creepName = creep.name.toLowerCase();
