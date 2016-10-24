@@ -187,9 +187,9 @@ module.exports.loop = function () {
     var options = {
         population: [
             { role: "assembler", priority: 100, minimum: 2, spawner: assembler, isEnabled: function (room) { return room.find(FIND_MY_CONSTRUCTION_SITES).length > 0; } },
-            { role: "mechanic", priority: 100, minimum: 1, spawner: mechanic, isEnabled: function(room) { return room.find(FIND_STRUCTURES, { filter: function(structure) { return structure.percentHealth() < .8; } }).length > 0; } },
+            { role: "mechanic", priority: 99, minimum: 1, spawner: mechanic, isEnabled: function(room) { return room.find(FIND_STRUCTURES, { filter: function(structure) { return structure.percentHealth() < .8; } }).length > 0; } },
             { role: "upgrader", priority: 98, minimum: 9, spawner: upgrader, isEnabled: function() { return true; } },
-            { role: "staticminer", priority: 95, minimum: 2, spawner: staticMiner, isEnabled: function(room) { return room.find(FIND_SOURCES, { filter: function(source) { return source.pos.findInRange(FIND_MY_CREEPS, 1, { filter: function(creep) { return creep.name.startsWith("staticminer"); } }).length === 0; } }).length > 0; }, canSkip: false },
+            { role: "staticminer", priority: 2, minimum: 2, spawner: staticMiner, isEnabled: function(room) { return room.find(FIND_SOURCES, { filter: function(source) { return source.pos.findInRange(FIND_MY_CREEPS, 1, { filter: function(creep) { return creep.name.startsWith("staticminer"); } }).length === 0; } }).length > 0; }, canSkip: false },
             { role: "harvester", priority: 1, minimum: 4, spawner: harvester, isEnabled: function() { return true; }, canSkip: false }
         ]
     };
@@ -202,10 +202,11 @@ module.exports.loop = function () {
             //     throw 
             // }
             var expectedNumber = demographic.minimum;
-            if(expectedNumber > _.filter(aRoom.find(FIND_MY_CREEPS), function(creep) { return creep.name.toUpperCase().startsWith(demographic.role.toUpperCase()); }).length) {
+            var currentNumber = _.filter(aRoom.find(FIND_MY_CREEPS), function(creep) { return creep.name.toUpperCase().startsWith(demographic.role.toUpperCase()); }).length;
+            if(currentNumber < expectedNumber) {
                 if(demographic.isEnabled(aRoom)) {
                     var result = demographic.spawner[demographic.role].spawn(aRoom);
-                    if(result == ERR_NOT_ENOUGH_ENERGY || !demographic.canSkip) {
+                    if(result == ERR_NOT_ENOUGH_ENERGY && !demographic.canSkip) {
                         break;
                     }
                 } else {
