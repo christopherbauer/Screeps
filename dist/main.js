@@ -23,6 +23,13 @@ RoomPosition.prototype.isFree = function() {
     }
     return true;
 }
+RoomPosition.prototype.designateDirectPathRoad = function(end) {
+    var result = PathFinder.search(this, end, [ { plainCost: 1 }, {swampCost: 1} ]); //find most direct path
+	for(var pos in result.path) {
+		var position = result.path[pos];
+		Game.rooms[position.roomName].createConstructionSite(position, STRUCTURE_ROAD);
+	}
+}
 Creep.prototype.canHarvest = function(source) {
     return this.harvest(source) === ERR_NOT_IN_RANGE;
 }
@@ -115,6 +122,10 @@ Source.prototype.isFree = function() {
         this.room.isFree(new RoomPosition(pos.x, pos.y+1, this.room.name)) || //s
         this.room.isFree(new RoomPosition(pos.x+1, pos.y+1, this.room.name)); //se
 }
+
+    function whaddup() {
+        for(var creep in Game.creeps) { var curCreep = Game.creeps[creep]; curCreep.say(curCreep.memory.task); } 
+    }
 module.exports.loop = function () {
     var harvester = require('role.Harvester');
     var upgrader = require('role.Upgrader');
@@ -132,7 +143,8 @@ module.exports.loop = function () {
                 { controllerLevel: 1, extensions: 0 },
                 { controllerLevel: 2, extensions: 2 },
                 { controllerLevel: 3, extensions: 5 },
-                { controllerLevel: 4, extensions: 9 }
+                { controllerLevel: 4, extensions: 9 },
+                { controllerLevel: 5, extensions: 12 }
             ];
             var extensionMin;
             for(var option in options){
@@ -214,18 +226,29 @@ module.exports.loop = function () {
                 }
             }
         }
-        var towers = aRoom.find(FIND_MY_STRUCTURES, { filter: function(structure) { return structure.structureType === STRUCTURE_TOWER && structure.energy < structure.energyCapacity; } });
+        var towers = aRoom.find(FIND_MY_STRUCTURES, { filter: function(structure) { return structure.structureType === STRUCTURE_TOWER; } });
+        
         for(var tower in towers) {
             var curTower = towers[tower];
             var hostiles = aRoom.find(FIND_HOSTILE_CREEPS);
             for (var hostile in hostiles) {
                 curTower.attack(hostiles[hostile]);
+                break;
             }
             var injureds = aRoom.find(FIND_MY_CREEPS, { filter: function (creep) { return creep.hits < creep.hitsMax; } });
             for (var injured in injureds) {
                 curTower.heal(injureds[injured]);
+                break;
+            }
+            var damagedStructures = aRoom.find(FIND_STRUCTURES, { filter: function(structure) { return structure.percentHealth() < .8; } });
+            
+            for(var damaged in damagedStructures) {
+                curTower.repair(damagedStructures[damaged]);
+                break;
             }
         }
+        
+        if(Game.rooms[room_id].spawn)
     }
     
     for(var creep in Game.creeps) {
