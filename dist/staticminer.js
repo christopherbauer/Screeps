@@ -36,6 +36,8 @@ module.exports.staticminer = {
                 }
                 var result = creep.harvest(Game.getObjectById(creep.memory.source));
                 if(result === ERR_NOT_IN_RANGE) {
+                    this.acquireSource(creep);
+                    
                     creep.moveTo(Game.getObjectById(creep.memory.source));
                 }
                 if(creep.carry.energy >= creep.carryCapacity) {
